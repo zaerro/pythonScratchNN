@@ -33,13 +33,17 @@ softmax.forward([[1,2,3]])
 # print(softmax.output)
 
 X, y = spiral_data(samples=100, classes=3)
+
 dense1 = Layer_Dense(2, 3)
 act1 = Activation_ReLU()
 dense2 = Layer_Dense(3, 3)
 act2 = Activation_Softmax()
 
+# input into first hidden
 dense1.forward(X)
 act1.forward(dense1.output)
+
+# input into output layer
 dense2.forward(act1.output)
 act2.forward(dense2.output)
 
