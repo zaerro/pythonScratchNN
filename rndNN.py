@@ -87,3 +87,10 @@ print(act2.output[:5])
 loss = loss_func.calculate(act2.output, y)
 
 print(f"Loss: {loss}")
+
+predictions = np.argmax(act2.output, axis=1)
+if len(y.shape) == 2:
+    y = np.argmax(y, axis=1)
+accuracy = np.mean(predictions==y)
+
+print("Acc:", accuracy)
