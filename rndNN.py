@@ -1,68 +1,10 @@
 import numpy as np
 import nnfs
-from nnfs.datasets import spiral_data
-
-nnfs.init()
-
-class Layer_Dense:
-
-    def __init__(self, n_inputs, n_neurons):
-        self.weights = 0.01 * np.random.randn(n_inputs, n_neurons)
-        self.biases = np.zeros((1, n_neurons))
-
-    def forward(self, inputs):
-        self.output = np.dot(inputs, self.weights) + self.biases
-
-class Activation_ReLU:
-
-    def forward(self, inputs):
-
-        self.output = np.maximum(0, inputs)
-
-class Activation_Softmax:
-
-    def forward(self, inputs):
-        exp_values = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
-
-        probs = exp_values / np.sum(exp_values, axis=1, keepdims=True)
-
-        self.output = probs
-
-class Loss:
-
-    def calculate(self, output, y):
-        sample_losses = self.forward(output, y)
-
-        data_loss = np.mean(sample_losses)
-
-        return data_loss
-
-class CrossEntropy(Loss):
-
-    def forward(self, y_pred, y_true):
-
-        samples = len(y_pred)
-
-        y_pred_clipped = np.clip(y_pred, 1e-7, 1 - 1e-7)
-
-        if len(y_true.shape) == 1:
-            correct_confidences = y_pred_clipped[
-                range(samples),
-                y_true
-            ]
-
-        elif len(y_true.shape) == 2:
-            correct_confidences = np.sum(y_pred_clipped * y_true,
-            axis=1)
-
-
-        neg_log_likelihoods = -np.log(correct_confidences)
-        return neg_log_likelihoods
-
-
-softmax = Activation_Softmax()
-softmax.forward([[1,2,3]])
-# print(softmax.output)
+from nnfs.datasets import spiral_data, vertical_data
+from layer_dense import Layer_Dense
+from ReLU import Activation_ReLU
+from softmax import Activation_Softmax
+from crossEntr import Loss, CrossEntropy
 
 X, y = spiral_data(samples=100, classes=3)
 
@@ -72,25 +14,40 @@ dense2 = Layer_Dense(3, 3)
 act2 = Activation_Softmax()
 loss_func = CrossEntropy()
 
-# input into first hidden
-dense1.forward(X)
-act1.forward(dense1.output)
+# helper variables
+lowest_loss = 9999999
+best_dense1_w = dense1.weights.copy()
+best_dense1_b = dense1.bias.copy()
+best_dense2_w = dense2.weights.copy()
+best_dense2_b = dense2.bias.copy()
 
-# input into output layer
-dense2.forward(act1.output)
-act2.forward(dense2.output)
+for iteration in range(10000):
+    dense1.weights += 0.05 * np.random.randn(2, 3)
+    dense1.bias += 0.05 * np.random.randn(1, 3)
+    dense2.weights += 0.05 * np.random.randn(3, 3)
+    dense2.bias += 0.05 * np.random.randn(1, 3)
 
-# output
+    dense1.forward(X)
+    act1.forward(dense1.output)
+    dense2.forward(act1.output)
+    act2.forward(dense2.output)
 
-print(act2.output[:5])
+    loss = loss_func.calculate(act2.output, y)
 
-loss = loss_func.calculate(act2.output, y)
+    predictions = np.argmax(act2.output, axis=1)
+    accuracy = np.mean(predictions==y)
 
-print(f"Loss: {loss}")
+    if loss < lowest_loss:
+        print('New set of weights found, iteration:', iteration,
+        'loss:', loss, 'acc:', accuracy)
+        best_dense1_weights = dense1.weights.copy()
+        best_dense1_bias = dense1.bias.copy()
+        best_dense2_weights = dense2.weights.copy()
+        best_dense2_bias = dense2.bias.copy()
+        lowest_loss = loss
 
-predictions = np.argmax(act2.output, axis=1)
-if len(y.shape) == 2:
-    y = np.argmax(y, axis=1)
-accuracy = np.mean(predictions==y)
-
-print("Acc:", accuracy)
+    else:
+        dense1.weights = best_dense1_weights.copy()
+        dense1.bias = best_dense1_bias.copy()
+        dense2.weights = best_dense2_weights.copy()
+        dense2.bias = best_dense2_bias.copy()
